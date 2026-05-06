@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | My App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card {
+      background: white;
+      padding: 35px 30px;
+      border-radius: 12px;
+      width: 340px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+
+    .card h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+
+    /* Tab buttons: Login / Register */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 22px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      font-size: 15px;
+      cursor: pointer;
+      color: #999;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .tab-btn.active {
+      color: #4facfe;
+      border-bottom: 2px solid #4facfe;
+      margin-bottom: -2px;
+    }
+
+    /* Form panels */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+
+    .input-group input:focus {
+      border-color: #4facfe;
+      outline: none;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(to right, #4facfe, #00c6ff);
+      border: none;
+      color: white;
+      font-size: 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 5px;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Message box: shows success or error */
+    .message {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+      display: none;
+    }
+
+    .message.success {
+      background: #e8f5e9;
+      color: #2e7d32;
+      display: block;
+    }
+
+    .message.error {
+      background: #fdecea;
+      color: #c62828;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Welcome 👋</h2>
+
+    <!-- TAB BUTTONS -->
+    <div class="tabs">
+      <button class="tab-btn active" id="loginTab" onclick="switchTab('login')">Login</button>
+      <button class="tab-btn" id="registerTab" onclick="switchTab('register')">Register</button>
+    </div>
+
+    <!-- ── LOGIN PANEL ── -->
+    <div class="tab-panel active" id="loginPanel">
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" required>
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password" required>
+      </div>
+      <button class="btn" id="loginBtn" onclick="handleLogin()">Login</button>
+      <div class="message" id="loginMsg"></div>
+    </div>
+
+    <!-- ── REGISTER PANEL ── -->
+    <div class="tab-panel" id="registerPanel">
+      <div class="input-group">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="you@example.com" required>
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="regPassword" placeholder="Create a password" required>
+      </div>
+      <button class="btn" id="registerBtn" onclick="handleRegister()">Register</button>
+      <div class="message" id="registerMsg"></div>
+    </div>
+  </div>
+
+  <script>
+    // ── Switch between Login and Register tabs ──────────────────────────────
+    function switchTab(tab) {
+      document.getElementById("loginPanel").classList.toggle("active", tab === "login");
+      document.getElementById("registerPanel").classList.toggle("active", tab === "register");
+      document.getElementById("loginTab").classList.toggle("active", tab === "login");
+      document.getElementById("registerTab").classList.toggle("active", tab === "register");
+    }
+
+    // ── Show message (success or error) ────────────────────────────────────
+    function showMsg(id, text, type) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = "message " + type;
+    }
+
+    // ── LOGIN: Send email+password to /api/login ────────────────────────────
+    // How it works:
+    //   1. User fills in email and password
+    //   2. We use fetch() to send a POST request to our backend (server.js)
+    //   3. Backend checks MongoDB — if credentials match, it returns success
+    //   4. We redirect to /dashboard
+    async function handleLogin() {
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+
+      if (!email || !password) {
+        return showMsg("loginMsg", "Please fill in all fields.", "error");
+      }
+
+      const btn = document.getElementById("loginBtn");
+      btn.disabled = true;
+      btn.textContent = "Logging in...";
+
+      try {
+        // fetch() sends an HTTP POST request to the backend
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },  // Tell backend we're sending JSON
+          body: JSON.stringify({ email, password })          // Convert JS object → JSON string
+        });
+
+        const data = await response.json(); // Parse the JSON response from backend
+
+        if (response.ok) {
+          showMsg("loginMsg", "✅ " + data.message, "success");
+          // Save email so dashboard can display it
+          localStorage.setItem("userEmail", data.email);
+          // Redirect to dashboard after 1 second
+          setTimeout(() => window.location.href = "/dashboard", 1000);
+        } else {
+          showMsg("loginMsg", "❌ " + data.message, "error");
+        }
+      } catch (err) {
+        showMsg("loginMsg", "❌ Could not connect to server.", "error");
+      }
+
+      btn.disabled = false;
+      btn.textContent = "Login";
+    }
+
+    // ── REGISTER: Send email+password to /api/register ─────────────────────
+    // How it works:
+    //   1. User fills in email and password
+    //   2. fetch() sends POST to /api/register
+    //   3. Backend hashes the password and saves user to MongoDB
+    //   4. We show success and switch to Login tab
+    async function handleRegister() {
+      const email = document.getElementById("regEmail").value.trim();
+      const password = document.getElementById("regPassword").value;
+
+      if (!email || !password) {
+        return showMsg("registerMsg", "Please fill in all fields.", "error");
+      }
+      if (password.length < 6) {
+        return showMsg("registerMsg", "Password must be at least 6 characters.", "error");
+      }
+
+      const btn = document.getElementById("registerBtn");
+      btn.disabled = true;
+      btn.textContent = "Registering...";
+
+      try {
+        const response = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showMsg("registerMsg", "✅ " + data.message + " Please login.", "success");
+          // Auto-switch to login tab after 1.5s
+          setTimeout(() => switchTab("login"), 1500);
+        } else {
+          showMsg("registerMsg", "❌ " + data.message, "error");
+        }
+      } catch (err) {
+        showMsg("registerMsg", "❌ Could not connect to server.", "error");
+      }
+
+      btn.disabled = false;
+      btn.textContent = "Register";
+    }
+
+    // Allow pressing Enter key to submit
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const loginActive = document.getElementById("loginPanel").classList.contains("active");
+        loginActive ? handleLogin() : handleRegister();
+      }
+    });
+  </script>
+
+</body>
+</html>
